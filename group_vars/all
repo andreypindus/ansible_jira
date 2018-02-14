@@ -1,0 +1,8 @@
+---
+  jira_home: /var/jira-home
+  listen_address: 0.0.0.0/0
+  listen_address_config: "'0.0.0.0'"
+  connection_method: md5
+  jira_db_user: jira
+  jira_db_user_password: Jiradb2017
+  jira_db_name: jira

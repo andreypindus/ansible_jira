@@ -1,0 +1,63 @@
+---
+  - hosts: jira-postgresql
+    remote_user: ec2-user
+    become: yes
+    tasks:
+
+      - name: install prerequisites
+        pip: name=psycopg2
+
+
+      - name: Install postgresql server
+        yum:
+          name: "{{ item }}"
+          state: present
+        with_items:
+          - https://download.postgresql.org/pub/repos/yum/9.3/redhat/rhel-6-x86_64/pgdg-ami201503-93-9.3-2.noarch.rpm
+          - postgresql93
+          - postgresql93-server
+          - python-psycopg2
+      
+      - name: Initdb
+        command: service postgresql93 initdb
+        register: command_result
+        ignore_errors: True
+
+      - name: Set PostgreSQL config for pg_hba
+        template:
+          src: ./templates/pg_hba.conf.j2
+          dest: /var/lib/pgsql93/data/pg_hba.conf
+            
+      - name: Set PostgreSQL config for postgresql.conf
+        template:
+          src: ./templates/postgresql.conf.j2
+          dest: /var/lib/pgsql93/data/postgresql.conf
+      
+      - name: Start Postgresql service
+        service:
+          name: postgresql93
+          state: started
+          enabled: yes
+      
+      - name: Creat DB
+        become_user: postgres
+        postgresql_db:
+          name: "{{ jira_db_name }}"
+          encoding: UNICODE
+          lc_collate: C
+          lc_ctype: C
+          template: template0
+      
+      - name: Creat DB user
+        become_user: postgres
+        postgresql_user:
+          name: "{{ jira_db_user }}"
+          password: "{{ jira_db_user_password }}"
+
+      - name: Grant full access for user to DB
+        become_user: postgres
+        postgresql_privs:
+          db: "{{ jira_db_name }}"
+          privs: ALL
+          type: database
+          role: "{{ jira_db_user }}"

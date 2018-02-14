@@ -30,11 +30,21 @@
     - name: Add jira home
       template: 
         src: ./templates/jira-application.properties.j2
-        dest: /tmp/atlassian-jira-6.4.14-standalone/jirasoftware/atlassian-jira/WEB-INF/classes/jira-application.properties
+        dest: /tmp/jirasoftware/atlassian-jira-6.4.14-standalone/atlassian-jira/WEB-INF/classes/jira-application.properties
         owner: jira
         mode: 0644
+    
+    - name: Set iptables rules for port redirection
+      command: "{{ item }}"
+      with_items:
+        - iptables -A INPUT -i eth0 -p tcp --dport 80 -j ACCEPT
+        - iptables -A INPUT -i eth0 -p tcp --dport 8080 -j ACCEPT
+        - iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+        - iptables -A INPUT -i eth0 -p tcp --dport 443 -j ACCEPT
+        - iptables -A INPUT -i eth0 -p tcp --dport 8443 -j ACCEPT
+        - iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 8443
 
     - name: Run jira
       become_user: jira
-      script: /tmp/atlassian-jira-6.4.14-standalone/jirasoftware/bin/start-jira.sh
+      shell: nohup /tmp/jirasoftware/atlassian-jira-6.4.14-standalone/bin/start-jira.sh &
         
