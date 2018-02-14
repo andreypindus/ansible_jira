@@ -1,0 +1,40 @@
+---
+  - hosts: jira
+    remote_user: ec2-user
+    become: true
+    tasks:
+    - name: Create jira user
+      user:
+        name: jira
+        shell: /bin/bash
+        comment: "Account for running JIRA Software"
+        createhome: yes
+
+    - name: Create installation directory
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: jira
+        mode: 0755
+      with_items:
+        - /tmp/jirasoftware
+        - /var/jira-home
+
+    - name: unpackage installation files
+      unarchive:
+        src: https://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-6.4.14.tar.gz
+        dest: /tmp/jirasoftware
+        remote_src: yes
+        owner: jira
+    
+    - name: Add jira home
+      template: 
+        src: ./templates/jira-application.properties.j2
+        dest: /tmp/atlassian-jira-6.4.14-standalone/jirasoftware/atlassian-jira/WEB-INF/classes/jira-application.properties
+        owner: jira
+        mode: 0644
+
+    - name: Run jira
+      become_user: jira
+      script: /tmp/atlassian-jira-6.4.14-standalone/jirasoftware/bin/start-jira.sh
+        
